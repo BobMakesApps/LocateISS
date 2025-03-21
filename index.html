@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locate ISS - Real-time tracking at 17,500 mph</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #000;
+            color: #fff;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            padding: 25px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        
+        .header-main {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+        }
+        
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .title-area {
+            text-align: left;
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+            line-height: 1.2;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            color: #9aa0a6;
+            margin: 5px 0 0 0;
+            font-weight: 400;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+        }
+        
+        .app-badge {
+            background: rgba(0, 122, 255, 0.15);
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #00C7FF;
+            display: flex;
+            align-items: center;
+            border: 1px solid rgba(0, 122, 255, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        
+        .app-badge:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            background: rgba(0, 122, 255, 0.25);
+        }
+        
+        .app-badge svg {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            fill: #00C7FF;
+        }
+        
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+                padding-bottom: 25px;
+            }
+            
+            .header-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+        
+        .map-container {
+            width: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            height: 600px;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+        
+        .overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            z-index: 999;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 280px;
+        }
+        
+        .iss-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .iss-info h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 20px;
+            color: #007AFF;
+            font-weight: 600;
+        }
+        
+        .iss-data {
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .iss-data span {
+            font-weight: 500;
+            color: #00C7FF;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .map-button {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .map-button:hover {
+            background: rgba(0, 122, 255, 0.7);
+            transform: translateY(-2px);
+        }
+        
+        .icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .map-themes {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .theme-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .theme-option.active {
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+        
+        .theme-standard {
+            background-color: #B3D1FF;
+        }
+        
+        .theme-dark {
+            background-color: #121212;
+        }
+        
+        .theme-blue {
+            background-color: #002244;
+        }
+        
+        .app-promo-section {
+            margin-top: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .promo-info-container {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            gap: 30px;
+        }
+        
+        .app-promo {
+            flex: 3;
+            background: linear-gradient(135deg, rgba(0, 122, 255, 0.1), rgba(0, 199, 255, 0.1));
+            border-radius: 24px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 122, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-sidebar {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 260px;
+        }
+        
+        .info-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-card h3 {
+            color: #007AFF;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .info-card p {
+            color: #bbb;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .info-card p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-card ul {
+            padding-left: 20px;
+            margin: 15px 0;
+            color: #bbb;
+        }
+        
+        .info-card li {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .info-card li strong {
+            color: #fff;
+        }
+        
+        .app-promo::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            left: -100px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(0, 199, 255, 0.4), transparent 70%);
+            filter: blur(30px);
+            z-index: -1;
+        }
+        
+        .app-promo::after {
+            content: '';
+            position: absolute;
+            bottom: -100px;
+            right: -100px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(0, 122, 255, 0.4), transparent 70%);
+            filter: blur(30px);
+            z-index: -1;
+        }
+        
+        .app-promo-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 50px;
+        }
+        
+        .app-info {
+            flex: 1;
+            max-width: 550px;
+        }
+        
+        .device-showcase {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .app-promo h2 {
+            font-size: 32px;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-weight: 700;
+            color: #007AFF;
+        }
+        
+        .app-promo p {
+            font-size: 16px;
+            color: #9aa0a6;
+            margin-bottom: 30px;
+            max-width: 450px;
+        }
+        
+        .app-features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .feature {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            max-width: 200px;
+        }
+        
+        .feature-icon {
+            background: linear-gradient(135deg, #007AFF, #00C7FF);
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            font-size: 20px;
+            box-shadow: 0 5px 15px rgba(0, 122, 255, 0.3);
+        }
+        
+        .feature h3 {
+            font-size: 16px;
+            margin: 0 0 5px 0;
+            font-weight: 600;
+        }
+        
+        .feature p {
+            font-size: 13px;
+            color: #9aa0a6;
+            margin: 0;
+        }
+        
+        .app-cta {
+            background: linear-gradient(90deg, #007AFF, #00C7FF);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: inline-block;
+            text-decoration: none;
+            box-shadow: 0 10px 20px rgba(0, 122, 255, 0.3);
+            margin-top: 20px;
+        }
+        
+        .app-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 122, 255, 0.4);
+        }
+        
+        .device-mockup {
+            width: 260px;
+            height: 520px;
+            background-color: #111;
+            border-radius: 40px;
+            position: relative;
+            overflow: hidden;
+            border: 4px solid #333;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 122, 255, 0.2);
+            transform: perspective(1000px) rotateY(-10deg);
+        }
+        
+        .device-screen {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            background: #000;
+            border-radius: 30px;
+            overflow: hidden;
+        }
+        
+        .screen-content {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .screen-header {
+            height: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .screen-header h3 {
+            color: #fff;
+            font-size: 16px;
+            margin: 0;
+        }
+        
+        .screen-map {
+            flex: 1;
+            background-color: #0a0a30;
+            position: relative;
+        }
+        
+        .screen-dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #007AFF;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px rgba(0, 122, 255, 0.8);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .screen-news {
+            height: 200px;
+            background: #121212;
+            padding: 15px;
+            overflow: hidden;
+        }
+        
+        .news-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .news-item h4 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: #fff;
+        }
+        
+        .news-item p {
+            margin: 0;
+            font-size: 12px;
+            color: #9aa0a6;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(90deg, #007AFF, #00C7FF);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            background: linear-gradient(90deg, #0062cc, #00a3cc);
+            transform: translateY(-2px);
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.7);
+            }
+            70% {
+                transform: translate(-50%, -50%) scale(1.5);
+                box-shadow: 0 0 0 10px rgba(0, 122, 255, 0);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 122, 255, 0);
+            }
+        }
+        
+        .pulse-icon {
+            border-radius: 50%;
+            box-shadow: 0 0 0 rgba(255, 59, 48, 0.6);
+            animation: iss-pulse 2s infinite;
+        }
+        
+        @keyframes iss-pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.6);
+            }
+            70% {
+                box-shadow: 0 0 0 15px rgba(255, 59, 48, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
+            }
+        }
+        
+        .loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .loader {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid rgba(0, 122, 255, 0.2);
+            border-top-color: #007AFF;
+            animation: spin 1s infinite linear;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 18px;
+            color: #fff;
+        }
+        
+        @media (max-width: 1100px) {
+            .promo-info-container {
+                flex-direction: column;
+            }
+            
+            .info-sidebar {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .info-card {
+                flex: 1;
+                min-width: 260px;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .app-promo-content {
+                flex-direction: column;
+            }
+            
+            .app-info {
+                max-width: 100%;
+            }
+            
+            .app-features {
+                grid-template-columns: 1fr;
+            }
+            
+            .feature {
+                max-width: 100%;
+            }
+            
+            .info-sidebar {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-main">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <img src="app-icon.png" alt="Locate ISS Icon">
+                    </div>
+                    <div class="title-area">
+                        <h1>Locate ISS</h1>
+                        <p class="subtitle">Real-time tracking at 17,500 mph</p>
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a href="https://apps.apple.com/us/app/locate-iss/id6743140192" class="app-badge">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px; margin-right: 12px; fill: #00C7FF;">
+                        <path d="M17.178 12l-4.586 4.586c-.39.39-.39 1.023 0 1.414.195.195.45.293.707.293.256 0 .512-.098.707-.293l5-5c.39-.39.39-1.023 0-1.414l-5-5c-.39-.39-1.023-.39-1.414 0-.39.39-.39 1.023 0 1.414L17.178 12zM6.822 12l4.586-4.586c.39-.39.39-1.023 0-1.414-.39-.39-1.023-.39-1.414 0l-5 5c-.39.39-.39 1.023 0 1.414l5 5c.195.195.45.293.707.293.256 0 .512-.098.707-.293.39-.39.39-1.023 0-1.414L6.822 12z"/>
+                    </svg>
+                    DOWNLOAD ON APP STORE
+                </a>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="loading-screen" id="loading">
+                    <div class="loader"></div>
+                    <div class="loading-text">Acquiring ISS position data...</div>
+                </div>
+                <div class="overlay">
+                    <div class="iss-info">
+                        <h2>ISS Location</h2>
+                        <p class="iss-data">Latitude: <span id="iss-lat">Loading...</span></p>
+                        <p class="iss-data">Longitude: <span id="iss-lng">Loading...</span></p>
+                        <p class="iss-data">Altitude: <span id="iss-alt">Loading...</span> miles</p>
+                        <p class="iss-data">Velocity: <span id="iss-vel-mph">Loading...</span> mph</p>
+                        <p class="iss-data">Updated: <span id="timestamp">Loading...</span></p>
+                        <button class="refresh-btn" id="center-btn">Center on ISS</button>
+                    </div>
+                </div>
+                <div class="map-controls">
+                    <button class="map-button" id="toggle-path">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"></path>
+                        </svg>
+                        Show Path
+                    </button>
+                </div>
+                <div class="map-themes">
+                    <div class="theme-option theme-standard active" data-theme="standard"></div>
+                    <div class="theme-option theme-dark" data-theme="dark"></div>
+                </div>
+            </div>
+            
+            <div class="app-promo-section">
+                <div class="promo-info-container">
+                    <div class="app-promo">
+                        <div class="app-promo-content">
+                            <div class="app-info">
+                                <h2>Locate ISS</h2>
+                                <p>Track the International Space Station in real-time and stay updated with the latest space news</p>
+                                
+                                <div class="app-features">
+                                    <div class="feature">
+                                        <div class="feature-icon">🛰️</div>
+                                        <h3>Live Tracking</h3>
+                                        <p>Monitor the ISS position in real-time with accurate coordinates</p>
+                                    </div>
+                                    <div class="feature">
+                                        <div class="feature-icon">📰</div>
+                                        <h3>Space News</h3>
+                                        <p>Daily updates on space exploration and astronomy</p>
+                                    </div>
+                                    <div class="feature">
+                                        <div class="feature-icon">🚫</div>
+                                        <h3>No Ads</h3>
+                                        <p>Clean, distraction-free experience with no advertisements</p>
+                                    </div>
+                                    <div class="feature">
+                                        <div class="feature-icon">💸</div>
+                                        <h3>100% Free</h3>
+                                        <p>All features available at no cost, no in-app purchases</p>
+                                    </div>
+                                </div>
+                                
+                                <a href="https://apps.apple.com/us/app/locate-iss/id6743140192" class="app-cta">DOWNLOAD ON APP STORE</a>
+                            </div>
+                            
+                            <div class="device-showcase">
+                                <div class="device-mockup">
+                                    <div class="device-screen">
+                                        <div class="screen-content">
+                                            <div class="screen-header">
+                                                <h3>Locate ISS</h3>
+                                            </div>
+                                            <div class="screen-map">
+                                                <div class="screen-dot"></div>
+                                            </div>
+                                            <div class="screen-news">
+                                                <div class="news-item">
+                                                    <h4>SpaceX Launches New Satellite</h4>
+                                                    <p>The latest mission successfully deployed communications satellites into orbit.</p>
+                                                </div>
+                                                <div class="news-item">
+                                                    <h4>NASA Announces New Discovery</h4>
+                                                    <p>Scientists find evidence of water ice on a distant planet.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-sidebar">
+                        <div class="info-card">
+                            <h3>About the ISS</h3>
+                            <p>The International Space Station (ISS) is a modular space station in low Earth orbit. It's a multinational collaborative project involving NASA, Roscosmos, JAXA, ESA, and CSA.</p>
+                            <ul>
+                                <li><strong>Altitude:</strong> ~260 miles</li>
+                                <li><strong>Speed:</strong> ~17,500 mph</li>
+                                <li><strong>Orbits Earth:</strong> Every 90 minutes</li>
+                                <li><strong>Size:</strong> 357ft × 240ft</li>
+                                <li><strong>Weight:</strong> ~925,000 lb</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="info-card">
+                            <h3>Did You Know?</h3>
+                            <p>The ISS has been continuously occupied since November 2000, making it the longest continuous human presence in low Earth orbit.</p>
+                            <p>Astronauts on the ISS experience 16 sunrises and sunsets every day!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script>
+        // Hide loading screen after a fixed time in case everything else fails
+        setTimeout(function() {
+            document.getElementById('loading').style.display = 'none';
+        }, 2000);
+
+        // Initialize map with standard view
+        const map = L.map('map').setView([0, 0], 3);
+        
+        // Add tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Create custom ISS icon
+        const issIcon = L.divIcon({
+            className: 'pulse-icon',
+            html: '<div style="background-color: #FF3B30; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        });
+        
+        // Add ISS marker initially at [0,0]
+        const issMarker = L.marker([0, 0], {
+            icon: issIcon
+        }).addTo(map);
+        
+        // Add popup to marker
+        issMarker.bindPopup("<b>International Space Station</b><br>Moving at ~17,500 mph");
+        
+        // Store path points and create path layer
+        const issPathPoints = [];
+        const issPath = L.polyline([], {
+            color: '#FF3B30',
+            weight: 3,
+            opacity: 0.7
+        });
+        
+        // Toggle state
+        let showPath = false;
+        
+        // Function to update ISS position
+        function updateISSPosition() {
+            fetch('https://api.wheretheiss.at/v1/satellites/25544')
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading screen
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    // Get position
+                    const lat = data.latitude;
+                    const lng = data.longitude;
+                    
+                    // Update marker position
+                    issMarker.setLatLng([lat, lng]);
+                    
+                    // Add to path if not too far from previous point
+                    if (issPathPoints.length === 0) {
+                        issPathPoints.push([lat, lng]);
+                    } else {
+                        const lastPoint = issPathPoints[issPathPoints.length - 1];
+                        const distance = Math.sqrt(
+                            Math.pow(lat - lastPoint[0], 2) + 
+                            Math.pow(lng - lastPoint[1], 2)
+                        );
+                        
+                        if (distance < 5) {
+                            issPathPoints.push([lat, lng]);
+                        }
+                    }
+                    
+                    // Center map on first load
+                    if (issPathPoints.length === 1) {
+                        map.setView([lat, lng], 4);
+                    }
+                    
+                    // Update path
+                    issPath.setLatLngs(issPathPoints);
+                    
+                    // Update info panel
+                    document.getElementById('iss-lat').textContent = lat.toFixed(4);
+                    document.getElementById('iss-lng').textContent = lng.toFixed(4);
+                    document.getElementById('iss-alt').textContent = (data.altitude * 0.621371).toFixed(2);
+                    document.getElementById('iss-vel-mph').textContent = (data.velocity * 0.621371).toFixed(2);
+                    
+                    // Update timestamp
+                    const date = new Date();
+                    document.getElementById('timestamp').textContent = date.toLocaleTimeString();
+                })
+                .catch(error => {
+                    console.error('Error fetching ISS position:', error);
+                    // Hide loading screen even if error
+                    document.getElementById('loading').style.display = 'none';
+                });
+        }
+        
+        // Toggle path button functionality
+        document.getElementById('toggle-path').addEventListener('click', function() {
+            showPath = !showPath;
+            
+            if (showPath) {
+                map.addLayer(issPath);
+                this.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"></path>
+                    </svg>
+                    Hide Path`;
+            } else {
+                map.removeLayer(issPath);
+                this.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"></path>
+                    </svg>
+                    Show Path`;
+            }
+        });
+        
+        // Map theme switcher
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const theme = this.getAttribute('data-theme');
+                
+                // Get all current tile layers and remove them
+                map.eachLayer(function(layer) {
+                    if (layer instanceof L.TileLayer) {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                // Add selected theme
+                if (theme === 'standard') {
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19
+                    }).addTo(map);
+                } else if (theme === 'dark') {
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        maxZoom: 19
+                    }).addTo(map);
+                }
+                
+                // Update active class
+                document.querySelectorAll('.theme-option').forEach(el => {
+                    el.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+        
+        // Center button functionality
+        document.getElementById('center-btn').addEventListener('click', function() {
+            const currentLatLng = issMarker.getLatLng();
+            map.flyTo(currentLatLng, 4, {
+                animate: true,
+                duration: 1
+            });
+        });
+        
+        // Initial position update
+        updateISSPosition();
+        
+        // Update position every 5 seconds
+        setInterval(updateISSPosition, 5000);
+    </script>
